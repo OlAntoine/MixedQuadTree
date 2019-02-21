@@ -819,7 +819,6 @@ namespace Clobscode {
         Quadrants.clear();
 
 
-
         //create visitors and give them variables
         SplitVisitor sv;
         sv.setPoints(points);
@@ -1209,60 +1208,13 @@ namespace Clobscode {
         tpv.setMaxRefLevel(max_rl);
         new_pts.clear();
 
-        // list don't provide random access iterator needed for OpenMP pragma for
-        
+        for (iter = tmp_Quadrants.begin(); iter != tmp_Quadrants.end(); ++iter) {
 
-        // Mean with a.poly 1000 times : 30.3 ms
-
-        /*
-        std::vector<Quadrant*> quadrants;
-        for (iter = tmp_Quadrants.begin(); iter != tmp_Quadrants.end(); ++iter)
-            quadrants.push_back(&(*iter));
-
-        #pragma omp parallel for
-        for (int i = 0; i < quadrants.size(); i++) {
-            if (!quadrants[i]->accept(&tpv)) {
+            if (!(*iter).accept(&tpv)) {
                 std::cerr << "Error at Mesher::generateQuadtreeMesh";
-                std::cerr << " Transition Pattern not found\n";
+                std::cerr << "Transition Pattern not found\n";
             }
         }
-        */
-
-        /*
-        // With openMP 3.0 -> worse performance than above
-        // This will execute the loop in one thread, but delegate the processing of elements to others.
-        // Mean with a.poly 100 times : 47.56 ms
-        #pragma omp parallel
-        #pragma omp single
-        {
-            for(iter = tmp_Quadrants.begin(); iter != tmp_Quadrants.end(); ++iter) {
-                #pragma omp task firstprivate(iter)
-                if (!iter->accept(&tpv)) {
-                    std::cerr << "Error at Mesher::generateQuadtreeMesh";
-                    std::cerr << " Transition Pattern not found\n";
-                }
-                #pragma omp taskwait
-            }
-        }
-        */
-
-        // Other version!
-        // Mean with a.poly 100 times : 29.55 ms
-        
-        #pragma omp parallel
-        {
-           for(iter = tmp_Quadrants.begin(); iter != tmp_Quadrants.end(); iter++)
-           {
-              #pragma omp single nowait
-              {
-                 if (!iter->accept(&tpv)) {
-                    std::cerr << "Error at Mesher::generateQuadtreeMesh";
-                    std::cerr << " Transition Pattern not found\n";
-                }
-              }
-           } // end for
-        } // end ompparallel
-        
 
         //CL Debbuging
         {
@@ -1489,9 +1441,9 @@ namespace Clobscode {
 
         return out_els.size();
     }
-    //--------------------------------------------------------------------------------
-    //--------------------------------------------------------------------------------
 
+    //--------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------
     unsigned int Mesher::saveOutputMesh(const shared_ptr<FEMesh> &mesh, const vector<MeshPoint> &tmp_points,
                                         const vector<Quadrant> &tmp_Quadrants) {
         auto start_time = chrono::high_resolution_clock::now();
@@ -1540,6 +1492,58 @@ namespace Clobscode {
 
         return out_els.size();
     }
+
+    //--------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------
+    unsigned int Mesher::saveOutputMesh(const shared_ptr<FEMesh> &mesh, const vector<MeshPoint> &tmp_points,
+                                        const deque<Quadrant> &tmp_Quadrants) {
+        auto start_time = chrono::high_resolution_clock::now();
+
+        vector<Point3D> out_pts;
+        list<vector<unsigned int> > tmp_elements;
+        vector<vector<unsigned int> > out_els;
+
+        unsigned int n = tmp_points.size();
+        out_pts.reserve(n);
+        for (unsigned int i = 0; i < n; i++) {
+            out_pts.push_back(points[i].getPoint());
+        }
+
+        //list<Quadrant>::const_iterator o_iter;
+
+        for (unsigned int i = 0; i < tmp_Quadrants.size(); i++) {
+            vector<vector<unsigned int> > sub_els = tmp_Quadrants[i].getSubElements();
+            for (unsigned int j = 0; j < sub_els.size(); j++) {
+                tmp_elements.push_back(sub_els[j]);
+            }
+        }
+
+        /*for (o_iter=tmp_Quadrants.begin(); o_iter!=tmp_Quadrants.end(); ++o_iter) {
+         
+         vector<vector<unsigned int> > sub_els= o_iter->getSubElements();
+         for (unsigned int j=0; j<sub_els.size(); j++) {
+         tmp_elements.push_back(sub_els[j]);
+         }
+         }*/
+
+        out_els.reserve(tmp_elements.size());
+        list<vector<unsigned int> >::const_iterator e_iter;
+
+        for (e_iter = tmp_elements.begin(); e_iter != tmp_elements.end(); ++e_iter) {
+            out_els.push_back(*e_iter);
+        }
+
+        mesh->setPoints(out_pts);
+        mesh->setElements(out_els);
+
+        auto end_time = chrono::high_resolution_clock::now();
+        cout << "    * SaveOutputMesh in "
+             << std::chrono::duration_cast<chrono::milliseconds>(end_time - start_time).count();
+        cout << " ms" << endl;
+
+        return out_els.size();
+    }
+
 
     //--------------------------------------------------------------------------------
     //--------------------------------------------------------------------------------
