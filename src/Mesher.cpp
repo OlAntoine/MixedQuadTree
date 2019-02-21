@@ -1133,6 +1133,8 @@ namespace Clobscode {
 
                     unsigned short prl = (*iter).getRefinementLevel();
                     //insert the new elements
+                   
+                    //#pragma omp parallel for
                     for (unsigned int j = 0; j < split_elements.size(); j++) {
                         Quadrant o(split_elements[j], prl + 1);
 
@@ -1208,13 +1210,24 @@ namespace Clobscode {
         tpv.setMaxRefLevel(max_rl);
         new_pts.clear();
 
+        #pragma omp parallel for
+        for (int i = 0; i < tmp_Quadrants.size(); ++i)
+        {
+            if (!tmp_Quadrants[i].accept(&tpv)) {
+                std::cerr << "Error at Mesher::generateQuadtreeMesh";
+                std::cerr << "Transition Pattern not found\n";
+            }
+        }
+
+
+        /*
         for (iter = tmp_Quadrants.begin(); iter != tmp_Quadrants.end(); ++iter) {
 
             if (!(*iter).accept(&tpv)) {
                 std::cerr << "Error at Mesher::generateQuadtreeMesh";
                 std::cerr << "Transition Pattern not found\n";
             }
-        }
+        }*/
 
         //CL Debbuging
         {

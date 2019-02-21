@@ -31,6 +31,7 @@ void endMsg(){
     std::cerr << "number is the number of times we execute mesher_roi program\n";
     std::cerr << "Then at least one of the following list:\n";
     std::cerr << "t : to compute the mean of the process Transition Patterns\n";
+    std::cerr << "b : to compute the mean of the process Balanced mesh\n";
     //TODO add doc
 }
 
@@ -44,6 +45,10 @@ void fillMapToEvaluate(char arg, std::map<std::string, float>& map) {
     switch(arg) {
         case 't': {
             map["Transition Patterns"] = 0.f;
+            break;
+        }
+        case 'b': {
+            map["Balanced mesh"] = 0.f;
             break;
         }
         default: break;
@@ -74,7 +79,7 @@ void addCorrespondingTime(const std::string& ouputOfMesher, std::map<std::string
 int main(int argc, char const *argv[])
 {
     
-    const char* cmd = "./mesher_roi -p ../data/a.poly -a 5 -u ../output/a";
+    const char* cmd = "./mesher_roi -p ../data/a.poly -a 8 -u ../output/a";
 
     if (argc < 3) {
         endMsg();
