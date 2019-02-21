@@ -805,15 +805,20 @@ namespace Clobscode {
         auto start_time = chrono::high_resolution_clock::now();
 
         //list of temp Quadrants
-        list<Quadrant> tmp_Quadrants, new_Quadrants;
+        //list<Quadrant> tmp_Quadrants, new_Quadrants;
+        deque<Quadrant> tmp_Quadrants, new_Quadrants;
+
         //list of the points added at this refinement iteration:
         list<Point3D> new_pts;
 
-        list<Quadrant>::iterator iter;
+        //list<Quadrant>::iterator iter;
+        deque<Quadrant>::iterator iter;
 
         //initialising into a list, moving quadrants to save memory
         tmp_Quadrants.assign(make_move_iterator(Quadrants.begin()), make_move_iterator(Quadrants.end()));
         Quadrants.clear();
+
+
 
         //create visitors and give them variables
         SplitVisitor sv;

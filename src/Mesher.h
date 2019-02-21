@@ -44,6 +44,7 @@
 #include "Visitors/RemoveSubElementsVisitor.h"
 
 #include <list>
+#include <deque>
 #include <vector>
 #include <set>
 #include <cstdlib>
