@@ -1,18 +1,14 @@
 /*
 <Mix-mesher: region type. This program generates a mixed-elements 2D mesh>
-
 Copyright (C) <2013,2018>  <Claudio Lobos> All rights reserved.
-
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
-
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU Lesser General Public License for more details.
-
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/lgpl.txt>
 */
@@ -38,66 +34,61 @@ using std::pair;
 
 namespace Clobscode
 {
-	
-	//class QuadEdge;
-	
-	class QuadEdge{
-		
-	public:
-        
-		QuadEdge();
-		
-        QuadEdge(unsigned int idx1, unsigned int idx2, unsigned int midx=0);
 
-        QuadEdge(const QuadEdge & other);
+	//class QuadEdge;
+
+	class QuadEdge{
+
+	public:
+
+		QuadEdge();
+
+		QuadEdge(unsigned int idx1, unsigned int idx2, unsigned int midx=0);
+
+		QuadEdge(const QuadEdge & other);
 
 		virtual ~QuadEdge();
-		
-        virtual void assign(unsigned int idx1, unsigned int idx2);
-		
-        virtual void updateMidPoint(unsigned int idx);
-		
+
+		virtual void assign(unsigned int idx1, unsigned int idx2);
+
+		virtual void updateMidPoint(unsigned int idx);
+
 		virtual bool split(set<QuadEdge> &allQuadEdges, unsigned int maxp);
-		
-        virtual void setMidPoint(unsigned int mid);
-		
-        virtual unsigned int operator[](unsigned int pos) const;
-		
+
+		virtual void setMidPoint(unsigned int mid);
+
+		virtual unsigned int operator[](unsigned int pos) const;
+
 //        virtual QuadEdge& operator=(const QuadEdge &e);
 
 		friend ostream& operator<<(ostream& o, const QuadEdge &e);
-		
-        friend bool operator==(const QuadEdge &e1, const QuadEdge &e2);
-		
-        friend bool operator!=(const QuadEdge &e1, const QuadEdge &e2);
-		
-        friend bool operator<(const QuadEdge &e1, const QuadEdge &e2);
 
-        virtual std::size_t operator()(const QuadEdge& edge) const noexcept {
-			size_t hash = 23;
-			hash = hash * 31 + edge[0];
-			hash = hash * 31 + edge[1];
-			return hash;
-		}
-		
-		
+		friend bool operator==(const QuadEdge &e1, const QuadEdge &e2);
+
+		friend bool operator!=(const QuadEdge &e1, const QuadEdge &e2);
+
+		friend bool operator<(const QuadEdge &e1, const QuadEdge &e2);
+
+
 	protected:
-        vector<unsigned int> info; //info[2] midpoint
+		vector<unsigned int> info; //info[2] midpoint
+		mutable unsigned int midpoint;
 
 	};
-	
-    inline void QuadEdge::updateMidPoint(unsigned int idx) {
-        info[2] = idx;
+
+	inline void QuadEdge::updateMidPoint(unsigned int idx) {
+		midpoint = idx;
 	}
 
-    inline unsigned int QuadEdge::operator[](unsigned int pos) const{
+	inline unsigned int QuadEdge::operator[](unsigned int pos) const{
 //		return info.at(pos);
-        return info[pos]; //no position validity check
-    }
-	
-    //FJA TODO: this is a duplicate of updateMidPoint
-    inline void QuadEdge::setMidPoint(unsigned int mid){
-		info[2] = mid;
+		if (pos == 2) return midpoint;
+		return info[pos]; //no position validity check
+	}
+
+	//FJA TODO: this is a duplicate of updateMidPoint
+	inline void QuadEdge::setMidPoint(unsigned int mid){
+		midpoint = mid;
 	}
 
 }

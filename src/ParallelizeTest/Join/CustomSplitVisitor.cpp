@@ -26,6 +26,18 @@
 #include "CustomSplitVisitor.h"
 #include "../../Quadrant.h"
 
+
+namespace std {
+    template <>
+    struct hash<Clobscode::QuadEdge> {
+        size_t operator()(const Clobscode::QuadEdge& k) const
+        {
+            // Compute individual hash values for two data members and combine them using XOR and bit shifting
+            return ((hash<int>()(k[0]) ^ (hash<int>()(k[1]) << 1)) >> 1);
+        }
+    };
+}
+
 namespace Clobscode
 {
 //vector<MeshPoint> *points;
@@ -54,7 +66,7 @@ namespace Clobscode
         this->new_edges = &new_edges;
     }
     
-    void CustomSplitVisitor::setEdges(set<QuadEdge> &edges) {
+    void CustomSplitVisitor::setEdges(tbb::concurrent_unordered_set<QuadEdge, std::hash<QuadEdge>> &edges) {
         this->edges = &edges;
     }
     
@@ -239,7 +251,7 @@ namespace Clobscode
             mid_idx = this_edge[2];
 
         } else  {
-            found = edges->find(this_edge);
+            auto found = edges->find(this_edge);
 
             if (found != edges->end() && (*found)[2]!=0) {
                 //if the edge was already split, then save its mid_point and
