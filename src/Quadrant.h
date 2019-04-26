@@ -72,6 +72,9 @@ namespace Clobscode
 		
 		Quadrant(vector<unsigned int> &epts, 
 			   const unsigned short &ref_level);
+
+        Quadrant(vector<unsigned int> &epts,
+                 const Quadrant & quad);
 		
 		virtual ~Quadrant();
 
@@ -298,7 +301,7 @@ namespace Clobscode
     inline void Quadrant::setIntersectedEdges(list<unsigned int> &iedges){
         intersected_edges = iedges;
 	}
-	
+
     std::ostream& operator<<(ostream& o, const Quadrant &q);
 }
 #endif

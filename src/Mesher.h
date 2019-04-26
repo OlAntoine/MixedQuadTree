@@ -50,7 +50,8 @@
 #include <ctime>
 #include <string.h>
 #include <chrono>
-
+#include <tbb/concurrent_unordered_set.h>
+#include <tbb/concurrent_vector.h>
 
 
 using std::vector;
@@ -140,7 +141,10 @@ namespace Clobscode
 		void refineCustomMeshReductionTBBV2(int nbThread, list<Quadrant> &tmp_Quadrants, vector<MeshPoint> &points,
                                             set<QuadEdge> &QuadEdges,
                                             const list<RefinementRegion *> &all_reg, const unsigned short &rl,
-                                            Polyline &input);
+                                            Polyline &input,
+                                            vector<MeshPoint> & tmp_points,
+                                            tbb::concurrent_unordered_set<QuadEdge, std::hash<QuadEdge>> & tmp_edges,
+                                            tbb::concurrent_vector<Quadrant> & tmp_quadrants);
 
 
 		void refineMeshParallelTest1TBB(int nbThread, list<Quadrant> Quadrants, vector<MeshPoint> points,

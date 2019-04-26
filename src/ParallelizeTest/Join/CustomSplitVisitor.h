@@ -61,7 +61,7 @@ namespace Clobscode
         
         void setNewPts(vector<Point3D> &new_pts);
 
-        void setMapPts(std::tr1::unordered_map<size_t, unsigned int> &map_pts);
+        void setMapPts(std::tr1::unordered_map<size_t, unsigned long> &map_pts);
 
         void setNewEdges(set<QuadEdge> & new_edges);
         
@@ -76,7 +76,7 @@ namespace Clobscode
         //references
         const vector<MeshPoint> *points;
         vector<Point3D> *new_pts;
-        std::tr1::unordered_map<size_t, unsigned int> *map_pts;
+        std::tr1::unordered_map<size_t, unsigned long> *map_pts;
         set<QuadEdge> *new_edges;
         tbb::concurrent_unordered_set<QuadEdge, std::hash<QuadEdge>>*edges;
         vector<vector<unsigned int>> *new_eles;
@@ -84,7 +84,7 @@ namespace Clobscode
 
         bool splitEdge(unsigned int idx1,
                        unsigned int idx2,
-                       unsigned int &c_n_pts,
+                       unsigned long &c_n_pts,
                        unsigned int &mid_idx);
 
     };

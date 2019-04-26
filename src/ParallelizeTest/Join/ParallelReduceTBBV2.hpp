@@ -31,7 +31,7 @@ namespace Clobscode {
         //Need to be read in reduction :
         vector<Quadrant> m_new_Quadrants;
         vector<Point3D> m_new_pts; //Local new pts (not merged)
-        std::tr1::unordered_map<size_t, unsigned int> m_map_new_pts;
+        std::tr1::unordered_map<size_t, unsigned long> m_map_new_pts;
         set<QuadEdge> m_new_edges;
 
         //Read only
@@ -42,13 +42,7 @@ namespace Clobscode {
         tbb::concurrent_unordered_set<QuadEdge, std::hash<QuadEdge>> &edges;
 
         CustomSplitVisitor csv;
-
-        int numberOfJoint;
         bool master;
-        bool joinDone;
-
-        // usefull constante
-        unsigned long nb_points;
 
         void setSplitVisitor() {
             csv.setPoints(points);
@@ -67,9 +61,6 @@ namespace Clobscode {
                 m_rl(refinementLevel), input(input), points(points), all_reg(all_reg), tmp_Quadrants(tmp_Quadrants),
                 edges(quadEdges), master(master) {
             setSplitVisitor();
-            numberOfJoint = 0;
-            nb_points = points.size();
-            joinDone = false;
         }
 
 
@@ -81,7 +72,6 @@ namespace Clobscode {
             list<RefinementRegion *>::const_iterator reg_iter;
 
             for (auto i = range.begin(); i != range.end(); ++i) {
-
                 Quadrant &iter = tmp_Quadrants[i];
 
                 //Only check, can not modify after treatment
@@ -106,7 +96,6 @@ namespace Clobscode {
                     // not used by other thread
                     if ((*reg_iter)->intersectsQuadrant(points, iter)) {
                         to_refine = true;
-                        //counterRefine.fetch_and_increment();
                         break;
                     }
                 }
@@ -120,6 +109,7 @@ namespace Clobscode {
                     //(paul) Idea : add a task here (only if to refined, check if faster..)
 
                     list<unsigned int> &inter_edges = iter.getIntersectedEdges();
+
                     unsigned short qrl = iter.getRefinementLevel();
 
                     vector<vector<Point3D> > clipping_coords;
@@ -128,10 +118,7 @@ namespace Clobscode {
                     vector<vector<unsigned int> > split_elements;
                     csv.setNewEles(split_elements);
 
-                    //auto start_sv_time = chrono::high_resolution_clock::now();
                     iter.accept(&csv);
-                    //auto end_sv_time = chrono::high_resolution_clock::now();
-                    //time_split_visitor += std::chrono::duration_cast<chrono::milliseconds>(end_sv_time - start_sv_time).count();
 
                     if (inter_edges.empty()) {
                         for (unsigned int j = 0; j < split_elements.size(); j++) {
@@ -184,7 +171,7 @@ namespace Clobscode {
 
         inline set<QuadEdge> &getNewEdges() { return m_new_edges; }
 
-        inline std::tr1::unordered_map<size_t, unsigned int> &getNewMaps() { return m_map_new_pts; }
+        inline std::tr1::unordered_map<size_t, unsigned long> &getNewMaps() { return m_map_new_pts; }
 
         bool isItIn(const Polyline &mesh, const list<unsigned int> &faces, const vector<Point3D> &coords) const {
             //this method is meant to be used by Quadrants that don't

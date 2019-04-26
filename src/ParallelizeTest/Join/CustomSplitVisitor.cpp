@@ -33,19 +33,13 @@ namespace std {
         size_t operator()(const Clobscode::QuadEdge& k) const
         {
             // Compute individual hash values for two data members and combine them using XOR and bit shifting
-            return ((hash<int>()(k[0]) ^ (hash<int>()(k[1]) << 1)) >> 1);
+            return ((hash<unsigned int>()(k[0]) ^ (hash<unsigned int>()(k[1]) << 1)) >> 1);
         }
     };
 }
 
 namespace Clobscode
 {
-//vector<MeshPoint> *points;
-//list<Point3D> *new_pts;
-//set<QuadEdge> *edges;
-//vector<vector<unsigned int> > *new_eles;
-//vector<vector<Point3D> > *clipping;
-
     CustomSplitVisitor::CustomSplitVisitor()
         :points(NULL),new_pts(NULL),edges(NULL),new_eles(NULL),clipping(NULL)
     { }
@@ -58,7 +52,7 @@ namespace Clobscode
         this->new_pts = &new_pts;
     }
 
-    void CustomSplitVisitor::setMapPts(std::tr1::unordered_map<size_t, unsigned int> &map_pts) {
+    void CustomSplitVisitor::setMapPts(std::tr1::unordered_map<size_t, unsigned long> &map_pts) {
         this->map_pts = &map_pts;
     }
 
@@ -86,7 +80,7 @@ namespace Clobscode
 
         new_eles->reserve(4);
 
-        unsigned int n_pts = points->size() + new_pts->size();
+        unsigned long n_pts = points->size() + new_pts->size();
         //the vector containing all nodes of this Quadrant (and sons)
         vector<unsigned int> all_pts(9,0);
 
@@ -140,7 +134,7 @@ namespace Clobscode
         //of course all the intern edges and mid point were never inserted
         //before, so this task is performed without asking
         Point3D pt (avg[0],avg[1],avg[2]);
-        map_pts->insert(std::pair<size_t, unsigned int>(pt.operator()(pt), n_pts -1));
+        map_pts->insert(std::pair<size_t, unsigned int>(pt.operator()(pt), n_pts));
         new_pts->push_back(pt);
         //new_pts->push_back(Point3D (avg[0],avg[1],avg[2]));
         //new_pts->insert(Point3D (avg[0],avg[1],avg[2]));
@@ -224,7 +218,7 @@ namespace Clobscode
 
 
     bool CustomSplitVisitor::splitEdge(unsigned int idx1, unsigned int idx2,
-                                 unsigned int &c_n_pts, unsigned int &mid_idx){
+                                 unsigned long &c_n_pts, unsigned int &mid_idx){
         
         QuadEdge this_edge (idx1,idx2);
 

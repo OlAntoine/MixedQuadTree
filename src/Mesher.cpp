@@ -46,7 +46,7 @@ namespace std {
         size_t operator()(const Clobscode::QuadEdge& k) const
         {
             // Compute individual hash values for two data members and combine them using XOR and bit shifting
-            return ((hash<int>()(k[0]) ^ (hash<int>()(k[1]) << 1)) >> 1);
+            return ((hash<unsigned int>()(k[0]) ^ (hash<unsigned int>()(k[1]) << 1)) >> 1);
         }
     };
 }
@@ -1000,7 +1000,11 @@ namespace Clobscode {
         //refineMeshParallelTest1TBB(8, tmp_Quadrants, points, QuadEdges, all_reg, rl, input);
 
         //refineMeshReductionTBB(16, tmp_Quadrants, points, QuadEdges, all_reg, rl, input);
-        refineCustomMeshReductionTBBV2(8, tmp_Quadrants, points, QuadEdges, all_reg, rl, input);
+        vector<MeshPoint> tmp_points(points.begin(), points.end());
+        tbb::concurrent_unordered_set<QuadEdge, std::hash<QuadEdge>> tmp_edges(QuadEdges.begin(), QuadEdges.end());
+        tbb::concurrent_vector<Quadrant> tmp_quadrants(tmp_Quadrants.begin(), tmp_Quadrants.end());
+
+        refineCustomMeshReductionTBBV2(8, tmp_Quadrants, points, QuadEdges, all_reg, rl, input, tmp_points, tmp_edges, tmp_quadrants);
 
         int counterRefine = 0;
 
@@ -1016,9 +1020,6 @@ namespace Clobscode {
             new_pts.clear();
 
             list<RefinementRegion *>::const_iterator reg_iter;
-
-            //long time_split_visitor = 0;
-            //auto start_outside_block_time = chrono::high_resolution_clock::now();
 
             //split the Quadrants as needed
             while (!tmp_Quadrants.empty()) {
@@ -1045,10 +1046,8 @@ namespace Clobscode {
 
                     if ((*reg_iter)->intersectsQuadrant(points, *iter)) {
                         to_refine = true;
-                        //counterRefine++;
                     }
                 }
-
 
                 //now if refinement is not needed, we add the Quadrant as it was.
                 if (!to_refine) {
@@ -1117,8 +1116,6 @@ namespace Clobscode {
                 tmp_Quadrants.pop_front();
             } // while
 
-            //auto end_outside_block_time = chrono::high_resolution_clock::now();
-
             // don't forget to update list
             std::swap(tmp_Quadrants, new_Quadrants);
 
@@ -1147,25 +1144,10 @@ namespace Clobscode {
             std::cout << "Points : " << points.size() << std::endl;
             std::cout << "QuadEdges : " << QuadEdges.size() << std::endl;
             std::cout << "Quadrants : " << tmp_Quadrants.size() << std::endl;
-
-
-            for (const Point3D & point : new_pts) {
-                auto found = map.insert(pair<size_t , Point3D>(point.operator()(point), point));
-
-                if (!found.second) {
-                    std::cout << "Found duplicate points : " << point << " map existing " << (*found.first).second << std::endl;
-                    break;
-                }
-            }
         }
 
 
-
         std::cout << counterRefine << std::endl;
-
-
-
-
 
 
 
@@ -2264,7 +2246,10 @@ namespace Clobscode {
     void Mesher::refineCustomMeshReductionTBBV2(int nbThread, list<Quadrant> &tmp_Quadrants, vector<MeshPoint> &points,
                                                 set<QuadEdge> &QuadEdges,
                                                 const list<RefinementRegion *> &all_reg, const unsigned short &rl,
-                                                Polyline &input) {
+                                                Polyline &input,
+                                                vector<MeshPoint> & tmp_points,
+                                                tbb::concurrent_unordered_set<QuadEdge, std::hash<QuadEdge>> & tmp_edges,
+                                                tbb::concurrent_vector<Quadrant> & tmp_quadrants) {
 
         int NOMBRE_THREAD = tbb::task_scheduler_init::default_num_threads();
         std::cout << NOMBRE_THREAD << std::endl;
@@ -2275,29 +2260,28 @@ namespace Clobscode {
         }
 
         // TEST REDUCTION
-        list<Point3D> new_pts;
-        vector<MeshPoint> tmp_points(points.begin(), points.end());
-        tbb::concurrent_unordered_set<QuadEdge, std::hash<QuadEdge>> tmp_edges(QuadEdges.begin(), QuadEdges.end());
-        tbb::concurrent_vector<Quadrant> tmp_quadrants(tmp_Quadrants.begin(), tmp_Quadrants.end());
+        //vector<MeshPoint> tmp_points(points.begin(), points.end());
+        //tbb::concurrent_unordered_set<QuadEdge, std::hash<QuadEdge>> tmp_edges(QuadEdges.begin(), QuadEdges.end());
+        //tbb::concurrent_vector<Quadrant> tmp_quadrants(tmp_Quadrants.begin(), tmp_Quadrants.end());
+
+        tbb::task_scheduler_init test(nbThread);
+        tbb::task_group tg;
 
         for (unsigned short i = 0; i < rl; i++) {
 
             // !! START SPLIT
-            tbb::task_scheduler_init test(nbThread);
-            tbb::task_group tg;
-
             auto start_refine_rl_time = chrono::high_resolution_clock::now();
             auto start_split = chrono::high_resolution_clock::now();
 
-            int split = tmp_quadrants.size() / (nbThread) + 1;
-            split = std::max(split, 5000);
+            long split = tmp_quadrants.size() / (nbThread) + 1;
+            split = std::max(split, 5000l);
             std::cout << split << "/" << tmp_quadrants.size() << std::endl;
 
             vector<RefineMeshReductionV2 *> threads;
 
             threads.push_back(new RefineMeshReductionV2(i, tmp_quadrants, tmp_edges, input, tmp_points, all_reg, true));
 
-            int remainingQuads = tmp_quadrants.size();
+            long remainingQuads = tmp_quadrants.size();
             int prevStart = 0;
 
             for (int j = 0; j < nbThread && remainingQuads > 0; j++) {
@@ -2314,7 +2298,6 @@ namespace Clobscode {
             }
 
             tg.wait();
-            test.terminate();
 
             auto end_split = chrono::high_resolution_clock::now();
 
@@ -2323,15 +2306,12 @@ namespace Clobscode {
 
 
             // !! START JOIN
-
             auto start_join = chrono::high_resolution_clock::now();
 
             // init map vector to map local point index to global
-            std::vector<std::tr1::unordered_map<size_t, unsigned int>> threadToGlobal(threads.size() - 1);
+            std::vector<std::tr1::unordered_map<size_t, unsigned long>> threadToGlobal(threads.size() - 1);
 
-            unsigned int old_points_size = tmp_points.size();
-
-            unsigned int count_points = 0;
+            unsigned long old_points_size = tmp_points.size();
 
             // compute new points index sequentially (for now ?)
             for (int t = 0; t < threads.size(); t++) {
@@ -2343,8 +2323,8 @@ namespace Clobscode {
                     // compute new index and add if necessary
                     int counter = 0;
                     for (const Point3D &point : threads[t]->getNewPts()) {
-                        std::tr1::unordered_map<size_t, unsigned int> & threadMap = threadToGlobal[t - 1];
-                        std::tr1::unordered_map<size_t, unsigned int> & masterMap = threads[0]->getNewMaps();
+                        std::tr1::unordered_map<size_t, unsigned long> & threadMap = threadToGlobal[t - 1];
+                        std::tr1::unordered_map<size_t, unsigned long> & masterMap = threads[0]->getNewMaps();
 
                         // compute hash
                         size_t hashPoint = point.operator()(point);
@@ -2363,8 +2343,6 @@ namespace Clobscode {
                 }
             }
 
-            std::cout << "New points size " << count_points << endl;
-
             //if no points were added at this iteration, it is no longer
             //necessary to continue the refinement.
 
@@ -2376,21 +2354,21 @@ namespace Clobscode {
             auto end_join_points = chrono::high_resolution_clock::now();
 
             long total4 = std::chrono::duration_cast<chrono::milliseconds>(end_join_points - start_join).count();
-            cout << " time points " << total1 << endl;
+            cout << " time points " << total4 << endl;
 
-            tbb::task_scheduler_init test2(nbThread);
-            tbb::task_group tg_join;
+            //tbb::task_scheduler_init test2(nbThread);
 
             // now compute new edges and quads in parallel
             tmp_quadrants.clear();
 
+
             for (unsigned int t = 1; t < threads.size(); t++) {
-                tg_join.run([&, t] { // run in task group
+                tg.run([&, t] { // run in task group
                     //std::cout << "Edge start" << std::endl;
                     auto start_edge = chrono::high_resolution_clock::now();
 
                     RefineMeshReductionV2 * rmr = threads[t];
-                    std::tr1::unordered_map<size_t, unsigned int> & threadMap = threadToGlobal[t - 1];
+                    std::tr1::unordered_map<size_t, unsigned long> & threadMap = threadToGlobal[t - 1];
 
                     for (const QuadEdge &local_edge : rmr->getNewEdges()) {
                         // build new edge with right index
@@ -2435,17 +2413,17 @@ namespace Clobscode {
                         // build new quad with right index
                         vector<unsigned int> new_pointindex(4, 0);
 
-                        for (unsigned int i = 0; i < 4; i++) {
-                            if (local_quad.getPointIndex(i) < old_points_size) {
+                        for (unsigned int j = 0; j < 4; j++) {
+                            if (local_quad.getPointIndex(j) < old_points_size) {
                                 // index refer point not created during this refinement level
-                                new_pointindex[i] = local_quad.getPointIndex(i);
+                                new_pointindex[j] = local_quad.getPointIndex(j);
                             } else {
                                 // point created, need to update the point with correct index
-                                new_pointindex[i] = threadMap[local_quad.getPointIndex(i)];
+                                new_pointindex[j] = threadMap[local_quad.getPointIndex(j)];
                             }
                         }
 
-                        tmp_quadrants.emplace_back(new_pointindex, i);
+                        tmp_quadrants.emplace_back(new_pointindex, local_quad);
                     }
 
                     auto end_quad = chrono::high_resolution_clock::now();
@@ -2476,16 +2454,12 @@ namespace Clobscode {
             }
 
             // Wait for completion of the task group
-            tg_join.wait();
-            test2.terminate();
+            tg.wait();
 
             auto end_join = chrono::high_resolution_clock::now();
 
             long total2 = std::chrono::duration_cast<chrono::milliseconds>(end_join - end_split).count();
             cout << " time join " << total2 << endl;
-
-            for(auto var : threads) delete(var);
-
 
             auto end_refine_rl_time = chrono::high_resolution_clock::now();
             long total = std::chrono::duration_cast<chrono::milliseconds>(end_refine_rl_time - start_refine_rl_time).count();
@@ -2503,9 +2477,6 @@ namespace Clobscode {
             std::cout << "Quadrants : " << tmp_quadrants.size() << std::endl;
 
         }
-
-
-
     }
 
     void Mesher::refineMeshParallelTest1TBB(int nbThread, list<Quadrant> Quadrants, vector<MeshPoint> points,
