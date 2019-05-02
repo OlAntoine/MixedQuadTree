@@ -2311,7 +2311,7 @@ namespace Clobscode {
             tmp_quadrants.clear();
 
             // init map vector to map local point index to global
-            std::vector<std::tr1::unordered_map<size_t, unsigned long>> threadToGlobal(threads.size());
+            std::vector<std::tr1::unordered_map<unsigned int, unsigned int>> threadToGlobal(threads.size());
 
             unsigned long old_points_size = tmp_points.size();
 
@@ -2321,7 +2321,7 @@ namespace Clobscode {
                 auto start_edge = chrono::high_resolution_clock::now();
 
                 // compute new index and add if necessary
-                std::tr1::unordered_map<unsigned long, unsigned long> &threadMap = threadToGlobal[t];
+                std::tr1::unordered_map<unsigned int, unsigned int> &threadMap = threadToGlobal[t];
 
                 for (const QuadEdge &local_edge : threads[t]->getNewEdges()) {
 
@@ -2344,20 +2344,20 @@ namespace Clobscode {
                         // check if index need to be created or change
 
                         // build new edge with correct index
-                        vector<unsigned long> index(3, 0);
+                        vector<unsigned int> index(3, 0);
 
-                        for (unsigned int i = 0; i < 3; i++) {
-                            if (local_edge[i] < old_points_size) {
+                        for (unsigned int j = 0; j < 3; j++) {
+                            if (local_edge[j] < old_points_size) {
                                 // index refer point not created during this refinement level
-                                index[i] = local_edge[i];
+                                index[j] = local_edge[j];
                             } else {
                                 // point created locally, need to update the point with correct index
-                                if (threadMap.find(local_edge[i]) != threadMap.end()) {
-                                    index[i] = threadMap[local_edge[i]];
+                                if (threadMap.find(local_edge[j]) != threadMap.end()) {
+                                    index[j] = threadMap[local_edge[j]];
                                 } else {
-                                    index[i] = tmp_points.size();
-                                    threadMap.insert(pair<unsigned long, unsigned long>(local_edge[i], tmp_points.size()));
-                                    tmp_points.emplace_back(threads[t]->getNewPts()[local_edge[i] - old_points_size]);
+                                    index[j] = tmp_points.size();
+                                    threadMap.insert(pair<unsigned int, unsigned int>(local_edge[j], tmp_points.size()));
+                                    tmp_points.emplace_back(threads[t]->getNewPts()[local_edge[j] - old_points_size]);
                                 }
                             }
                         }
@@ -2367,12 +2367,14 @@ namespace Clobscode {
                         auto found = tmp_edges.insert(edge); // try insert
 
                         // if edge already exists
+                        /*
                         if (!found.second) {
                             if (edge[2] != 0 && edge[2] != (*found.first)[2]) {
                                 // since all points have been replaced, if it's different then midpoint has been created
                                 (found.first)->updateMidPoint(edge[2]);
                             }
                         }
+                         */
                     }
                 }
 
