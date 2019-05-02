@@ -38,8 +38,8 @@ namespace Clobscode {
         const Polyline &input;
         vector<MeshPoint> &points;
         const list<RefinementRegion *> &all_reg;
-        tbb::concurrent_vector<Quadrant> &tmp_Quadrants;
-        tbb::concurrent_unordered_set<QuadEdge, std::hash<QuadEdge>> &edges;
+        vector<Quadrant> &tmp_Quadrants;
+        set<QuadEdge> &edges;
 
         CustomSplitVisitor csv;
         bool master;
@@ -55,7 +55,7 @@ namespace Clobscode {
 
     public:
 
-        RefineMeshReductionV2(unsigned int refinementLevel, tbb::concurrent_vector<Quadrant> &tmp_Quadrants, tbb::concurrent_unordered_set<QuadEdge, std::hash<QuadEdge>> &quadEdges,
+        RefineMeshReductionV2(unsigned int refinementLevel, vector<Quadrant> &tmp_Quadrants, set<QuadEdge> &quadEdges,
                               Polyline &input, vector<MeshPoint> &points, const list<RefinementRegion *> &all_reg,
                               const bool master) :
                 m_rl(refinementLevel), input(input), points(points), all_reg(all_reg), tmp_Quadrants(tmp_Quadrants),

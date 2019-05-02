@@ -2247,9 +2247,9 @@ namespace Clobscode {
                                                 set<QuadEdge> &QuadEdges,
                                                 const list<RefinementRegion *> &all_reg, const unsigned short &rl,
                                                 Polyline &input,
-                                                vector<MeshPoint> & tmp_points,
-                                                tbb::concurrent_unordered_set<QuadEdge, std::hash<QuadEdge>> & tmp_edges,
-                                                tbb::concurrent_vector<Quadrant> & tmp_quadrants) {
+                                                vector<MeshPoint> & _tmp_points,
+                                                tbb::concurrent_unordered_set<QuadEdge, std::hash<QuadEdge>> & _tmp_edges,
+                                                tbb::concurrent_vector<Quadrant> & _tmp_quadrants) {
 
         int NOMBRE_THREAD = tbb::task_scheduler_init::default_num_threads();
         std::cout << NOMBRE_THREAD << std::endl;
@@ -2260,9 +2260,9 @@ namespace Clobscode {
         }
 
         // TEST REDUCTION
-        //vector<MeshPoint> tmp_points(points.begin(), points.end());
-        //tbb::concurrent_unordered_set<QuadEdge, std::hash<QuadEdge>> tmp_edges(QuadEdges.begin(), QuadEdges.end());
-        //tbb::concurrent_vector<Quadrant> tmp_quadrants(tmp_Quadrants.begin(), tmp_Quadrants.end());
+        vector<MeshPoint> tmp_points(points.begin(), points.end());
+        set<QuadEdge> tmp_edges(QuadEdges.begin(), QuadEdges.end());
+        vector<Quadrant> tmp_quadrants(tmp_Quadrants.begin(), tmp_Quadrants.end());
 
         tbb::task_scheduler_init test(nbThread);
         tbb::task_group tg;
@@ -2308,70 +2308,42 @@ namespace Clobscode {
             // !! START JOIN
             auto start_join = chrono::high_resolution_clock::now();
 
+            tmp_quadrants.clear();
+
             // init map vector to map local point index to global
-            std::vector<std::tr1::unordered_map<size_t, unsigned long>> threadToGlobal(threads.size() - 1);
+            std::vector<std::tr1::unordered_map<size_t, unsigned long>> threadToGlobal(threads.size());
 
             unsigned long old_points_size = tmp_points.size();
 
-            // compute new points index sequentially (for now ?)
+            // compute new points index sequentially
             for (int t = 0; t < threads.size(); t++) {
-                if (t == 0) {
-                    //add the new points to the vector
-                    tmp_points.reserve(tmp_points.size() + threads[0]->getNewPts().size());
-                    tmp_points.insert(tmp_points.end(), threads[0]->getNewPts().begin(), threads[0]->getNewPts().end());
-                } else {
-                    // compute new index and add if necessary
-                    int counter = 0;
-                    for (const Point3D &point : threads[t]->getNewPts()) {
-                        std::tr1::unordered_map<size_t, unsigned long> & threadMap = threadToGlobal[t - 1];
-                        std::tr1::unordered_map<size_t, unsigned long> & masterMap = threads[0]->getNewMaps();
 
-                        // compute hash
-                        size_t hashPoint = point.operator()(point);
+                auto start_edge = chrono::high_resolution_clock::now();
 
-                        auto found = masterMap.insert(std::pair<size_t, unsigned int>(hashPoint, tmp_points.size()));
+                // compute new index and add if necessary
+                std::tr1::unordered_map<unsigned long, unsigned long> &threadMap = threadToGlobal[t];
 
-                        if (!found.second) {
-                            // point already exists
-                            threadMap[counter++ + old_points_size] = (*found.first).second; // get index
+                for (const QuadEdge &local_edge : threads[t]->getNewEdges()) {
+
+                    if (local_edge[0] < old_points_size && local_edge[1] < old_points_size) {
+                        // midpoint created on existing thread
+                        auto found = tmp_edges.find(local_edge);
+
+                        if ((*found)[2] != 0) {
+                            // midpoint already created by another thread
+                            threadMap.insert(pair<unsigned long, unsigned long>(local_edge[2], (*found)[2]));
                         } else {
-                            // point inserted in map
-                            threadMap[counter++ + old_points_size] = tmp_points.size();
-                            tmp_points.emplace_back(point);
+                            // midpoint created only by this thread for now
+                            // add midpoint in point and update edge midpoint
+                            (*found).updateMidPoint(tmp_points.size());
+                            threadMap.insert(pair<unsigned long, unsigned long>(local_edge[2], tmp_points.size()));
+                            tmp_points.emplace_back(threads[t]->getNewPts()[local_edge[2] - old_points_size]);
                         }
-                    }
-                }
-            }
+                    } else {
+                        // it not about midpoint created on "old" edge but totally new edge
+                        // check if index need to be created or change
 
-            //if no points were added at this iteration, it is no longer
-            //necessary to continue the refinement.
-
-            if (old_points_size == tmp_points.size()) {
-                cout << "warning at Mesher::generateQuadtreeMesh no new points!!!\n";
-                break;
-            }
-
-            auto end_join_points = chrono::high_resolution_clock::now();
-
-            long total4 = std::chrono::duration_cast<chrono::milliseconds>(end_join_points - start_join).count();
-            cout << " time points " << total4 << endl;
-
-            //tbb::task_scheduler_init test2(nbThread);
-
-            // now compute new edges and quads in parallel
-            tmp_quadrants.clear();
-
-
-            for (unsigned int t = 1; t < threads.size(); t++) {
-                tg.run([&, t] { // run in task group
-                    //std::cout << "Edge start" << std::endl;
-                    auto start_edge = chrono::high_resolution_clock::now();
-
-                    RefineMeshReductionV2 * rmr = threads[t];
-                    std::tr1::unordered_map<size_t, unsigned long> & threadMap = threadToGlobal[t - 1];
-
-                    for (const QuadEdge &local_edge : rmr->getNewEdges()) {
-                        // build new edge with right index
+                        // build new edge with correct index
                         vector<unsigned long> index(3, 0);
 
                         for (unsigned int i = 0; i < 3; i++) {
@@ -2380,14 +2352,19 @@ namespace Clobscode {
                                 index[i] = local_edge[i];
                             } else {
                                 // point created locally, need to update the point with correct index
-                                index[i] = threadMap[local_edge[i]];
+                                if (threadMap.find(local_edge[i]) != threadMap.end()) {
+                                    index[i] = threadMap[local_edge[i]];
+                                } else {
+                                    index[i] = tmp_points.size();
+                                    threadMap.insert(pair<unsigned long, unsigned long>(local_edge[i], tmp_points.size()));
+                                    tmp_points.emplace_back(threads[t]->getNewPts()[local_edge[i] - old_points_size]);
+                                }
                             }
                         }
 
                         QuadEdge edge(index[0], index[1], index[2]);
 
                         auto found = tmp_edges.insert(edge); // try insert
-
 
                         // if edge already exists
                         if (!found.second) {
@@ -2396,65 +2373,41 @@ namespace Clobscode {
                                 (found.first)->updateMidPoint(edge[2]);
                             }
                         }
-
-
-                    }
-                    auto end_edge = chrono::high_resolution_clock::now();
-
-                    long total2 = std::chrono::duration_cast<chrono::milliseconds>(end_edge - start_edge).count();
-                    cout << " time edges " << total2  << endl;
-
-                    //std::cout << "Edge end" << std::endl;
-
-                    //std::cout << "Quad start" << std::endl;
-
-                    auto start_quad = chrono::high_resolution_clock::now();
-                    for (const Quadrant &local_quad : rmr->getNewQuadrants()) {
-                        // build new quad with right index
-                        vector<unsigned int> new_pointindex(4, 0);
-
-                        for (unsigned int j = 0; j < 4; j++) {
-                            if (local_quad.getPointIndex(j) < old_points_size) {
-                                // index refer point not created during this refinement level
-                                new_pointindex[j] = local_quad.getPointIndex(j);
-                            } else {
-                                // point created, need to update the point with correct index
-                                new_pointindex[j] = threadMap[local_quad.getPointIndex(j)];
-                            }
-                        }
-
-                        tmp_quadrants.emplace_back(new_pointindex, local_quad);
-                    }
-
-                    auto end_quad = chrono::high_resolution_clock::now();
-
-                    long total3 = std::chrono::duration_cast<chrono::milliseconds>(end_quad - start_quad).count();
-                    cout << " time quad " << total3 << endl;
-
-                    //std::cout << "Quad end" << std::endl;
-                });
-            }
-
-            //add the new edges of "master" to the vector
-            for (const QuadEdge & edge : threads[0]->getNewEdges()) {
-                auto found = tmp_edges.insert(edge); // try insert
-
-                // if edge already exists
-                if (!found.second) {
-                    if (edge[2] != 0 && edge[2] != (*found.first)[2]) {
-                        // since all points have been replaced, if it's different then midpoint has been created
-                        (found.first)->updateMidPoint(edge[2]);
                     }
                 }
-            }
 
-            // add new quads of master
-            for (const Quadrant & quad : threads[0]->getNewQuadrants()) {
-                tmp_quadrants.push_back(quad);
-            }
+                auto end_edge = chrono::high_resolution_clock::now();
 
-            // Wait for completion of the task group
-            tg.wait();
+                long total2 = std::chrono::duration_cast<chrono::milliseconds>(end_edge - start_edge).count();
+                cout << " time edges & points " << total2  << endl;
+
+
+                auto start_quad = chrono::high_resolution_clock::now();
+                for (Quadrant &local_quad : threads[t]->getNewQuadrants()) {
+                    // build new quad with right index
+                    vector<unsigned int> new_pointindex(4, 0);
+
+                    for (unsigned int j = 0; j < 4; j++) {
+                        if (local_quad.getPointIndex(j) < old_points_size) {
+                            // index refer point not created during this refinement level
+                            new_pointindex[j] = local_quad.getPointIndex(j);
+                        } else {
+                            // point created, need to update the point with correct index
+                            new_pointindex[j] = threadMap[local_quad.getPointIndex(j)];
+                        }
+                    }
+
+                    local_quad.setPointIndex(new_pointindex);
+
+                    tmp_quadrants.emplace_back(local_quad);
+                }
+
+                auto end_quad = chrono::high_resolution_clock::now();
+
+                long total3 = std::chrono::duration_cast<chrono::milliseconds>(end_quad - start_quad).count();
+                cout << " time quad " << total3 << endl;
+
+            }
 
             auto end_join = chrono::high_resolution_clock::now();
 

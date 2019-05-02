@@ -83,6 +83,7 @@ namespace Clobscode
 		//access methods
         virtual const vector<unsigned int> &getPointIndex() const; // read only
         virtual unsigned int getPointIndex(unsigned int i) const;
+        virtual void setPointIndex(vector<unsigned int> & epts);
 
         virtual const vector<unsigned int> getSubPointIndex() const; // read only
         virtual const vector<unsigned int> getSubPointIndexOnlyOnEdges() const; // read only
@@ -189,6 +190,11 @@ namespace Clobscode
 	}
     inline unsigned int Quadrant::getPointIndex(unsigned int i) const {
         return pointindex[i];
+    }
+
+    inline void Quadrant::setPointIndex(vector<unsigned int> & epts)  {
+        pointindex = epts;
+        sub_elements.assign(1,pointindex);
     }
 
     inline const vector<unsigned int> Quadrant::getSubPointIndex() const{

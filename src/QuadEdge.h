@@ -51,7 +51,7 @@ namespace Clobscode
 
 		virtual void assign(unsigned int idx1, unsigned int idx2);
 
-		virtual void updateMidPoint(unsigned int idx);
+		virtual void updateMidPoint(unsigned int idx) const;
 
 		virtual bool split(set<QuadEdge> &allQuadEdges, unsigned int maxp);
 
@@ -76,7 +76,7 @@ namespace Clobscode
 
 	};
 
-	inline void QuadEdge::updateMidPoint(unsigned int idx) {
+	inline void QuadEdge::updateMidPoint(unsigned int idx) const {
 		midpoint = idx;
 	}
 

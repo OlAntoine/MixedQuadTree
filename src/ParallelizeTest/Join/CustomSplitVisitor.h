@@ -65,7 +65,7 @@ namespace Clobscode
 
         void setNewEdges(set<QuadEdge> & new_edges);
         
-        void setEdges(tbb::concurrent_unordered_set<QuadEdge, std::hash<QuadEdge>> &edges);
+        void setEdges(set<QuadEdge> &edges);
         
         void setNewEles(vector<vector<unsigned int>> &new_eles);
 
@@ -78,7 +78,7 @@ namespace Clobscode
         vector<Point3D> *new_pts;
         std::tr1::unordered_map<size_t, unsigned long> *map_pts;
         set<QuadEdge> *new_edges;
-        tbb::concurrent_unordered_set<QuadEdge, std::hash<QuadEdge>>*edges;
+        set<QuadEdge>*edges;
         vector<vector<unsigned int>> *new_eles;
         vector<vector<Point3D>> *clipping;
 

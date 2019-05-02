@@ -60,7 +60,7 @@ namespace Clobscode
         this->new_edges = &new_edges;
     }
     
-    void CustomSplitVisitor::setEdges(tbb::concurrent_unordered_set<QuadEdge, std::hash<QuadEdge>> &edges) {
+    void CustomSplitVisitor::setEdges(set<QuadEdge> &edges) {
         this->edges = &edges;
     }
     
