@@ -24,7 +24,7 @@
 **/
 
 #include "SplitVisitorReductionOpenMP.h"
-#include "../Quadrant.h"
+#include "../../Quadrant.h"
 
 namespace Clobscode
 {

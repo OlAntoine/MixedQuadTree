@@ -29,6 +29,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/lgpl.txt>
 #include <iostream>
 #include <vector>
 #include <set>
+#include <mutex>
 
 using std::vector;
 using std::ostream;
@@ -86,11 +87,13 @@ namespace Clobscode
 		
 	protected:
         vector<unsigned int> info; //info[2] midpoint
+        std::mutex midpoint_mutex;
 
 	};
 	
     inline void QuadEdge::updateMidPoint(unsigned int idx) {
-        info[2] = idx;
+		std::lock_guard<std::mutex> lock(midpoint_mutex);
+		if (info[2] == 0) info[2] = idx;
 	}
 
     inline unsigned int QuadEdge::operator[](unsigned int pos) const{

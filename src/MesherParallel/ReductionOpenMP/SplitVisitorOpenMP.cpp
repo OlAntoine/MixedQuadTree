@@ -1,5 +1,5 @@
 #include "SplitVisitorOpenMP.h"
-#include "../Quadrant.h"
+#include "../../Quadrant.h"
 
 namespace Clobscode
 {

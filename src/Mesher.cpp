@@ -1027,6 +1027,7 @@ namespace Clobscode {
             for (int nb = 0; nb < nbTries; ++nb) {
                 //Fill output
                 output[0] += refineMeshParallelTest1TBB(i, tmp_Quadrants, points, QuadEdges, all_reg, rl, input);
+                /*
                 output[1] += refineMeshReductionTBB(i, tmp_Quadrants, points, QuadEdges, all_reg, rl, input);
                 output[2] += refineMeshCustomReductionTBB(i, tmp_Quadrants, points, QuadEdges, all_reg, rl, input);
                 output[3] += refineCustomMeshReductionTBBV2(i, tmp_Quadrants, points, QuadEdges, all_reg, rl, input);
@@ -1034,6 +1035,7 @@ namespace Clobscode {
                 output[5] += refineMeshCustomReductionTBBV4(i, tmp_Quadrants, points, QuadEdges, all_reg, rl, input);
                 output[6] += refineMeshReductionOpenMP(i, tmp_Quadrants, points, QuadEdges, all_reg, rl, input); //V1
                 output[7] += refineMeshReductionOpenMP(i, tmp_Quadrants, points, QuadEdges, all_reg, rl, input, false); //V2
+                 */
                 
                 for (int j = 0; j < output.size(); ++j)
                 {

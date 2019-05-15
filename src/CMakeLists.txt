@@ -39,10 +39,10 @@ set(SOURCE_FILES Main
 
         MesherParallel/refineMeshTBB.hpp
         MesherParallel/refineMeshOpenMP.hpp
-        MesherParallel/SplitVisitorOpenMP.h
-        MesherParallel/SplitVisitorOpenMP.cpp
-        MesherParallel/SplitVisitorReductionOpenMP.h
-        MesherParallel/SplitVisitorReductionOpenMP.cpp
+        MesherParallel/ReductionOpenMP/SplitVisitorOpenMP.cpp
+        MesherParallel/ReductionOpenMP/SplitVisitorOpenMP.h
+        MesherParallel/ReductionOpenMP/SplitVisitorReductionOpenMP.cpp
+        MesherParallel/ReductionOpenMP/SplitVisitorReductionOpenMP.h
         )
 
 set(SOURCE_MEANTIME MeanTimePerformance/Main)

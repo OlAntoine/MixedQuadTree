@@ -30,11 +30,11 @@
 #include <set>
 #include <vector>
 
-#include "../Quadrant.h"
-#include "../MeshPoint.h"
-#include "../Point3D.h"
-#include "../QuadEdge.h"
-#include "../Visitors/Visitor.h"
+#include "../../Quadrant.h"
+#include "../../MeshPoint.h"
+#include "../../Point3D.h"
+#include "../../QuadEdge.h"
+#include "../../Visitors/Visitor.h"
 
 #include <omp.h>
 

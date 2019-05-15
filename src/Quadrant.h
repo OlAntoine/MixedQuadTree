@@ -41,8 +41,8 @@
 
 //Test
 #include "MesherParallel/ParallelTest1TBB/SplitVisitorTest1TBB.h"
-#include "MesherParallel/SplitVisitorOpenMP.h"
-#include "MesherParallel/SplitVisitorReductionOpenMP.h"
+#include "MesherParallel/ReductionOpenMP/SplitVisitorOpenMP.h"
+#include "MesherParallel/ReductionOpenMP/SplitVisitorReductionOpenMP.h"
 
 using Clobscode::MeshPoint;
 using Clobscode::QuadEdge;

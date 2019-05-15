@@ -29,11 +29,11 @@
 #include <set>
 #include <vector>
 
-#include "../MeshPoint.h"
-#include "../Point3D.h"
-#include "../QuadEdge.h"
+#include "../../MeshPoint.h"
+#include "../../Point3D.h"
+#include "../../QuadEdge.h"
 
-#include "../Visitors/Visitor.h"
+#include "../../Visitors/Visitor.h"
 #include <cassert>
 
 
